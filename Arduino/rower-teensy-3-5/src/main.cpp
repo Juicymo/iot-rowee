@@ -347,11 +347,37 @@ void loop() {
         lcd.print(temp / 10.0);
         //Serial.println(temp / 100.0);
 
+        if (motor_speed_right == 0) {
+            lcd.setCursor(1, 2);
+            lcd.print(" ");
+        } else {
+            if (motor_direction_right == MOTOR_DIRECTION_FORWARD) {
+                lcd.setCursor(1, 2);
+                lcd.print(">");
+            } else {
+                lcd.setCursor(1, 2);
+                lcd.print("<");
+            }
+        }
+
         lcd.setCursor(2, 2);
         lcd.print("    ");
         lcd.setCursor(2, 2);
         lcd.print(motor_speed_right);
         lcd.print("%");
+
+        if (motor_speed_left == 0) {
+            lcd.setCursor(1, 3);
+            lcd.print(" ");
+        } else {
+            if (motor_direction_left == MOTOR_DIRECTION_FORWARD) {
+                lcd.setCursor(1, 3);
+                lcd.print(">");
+            } else {
+                lcd.setCursor(1, 3);
+                lcd.print("<");
+            }
+        }
 
         lcd.setCursor(2, 3);
         lcd.print("    ");
