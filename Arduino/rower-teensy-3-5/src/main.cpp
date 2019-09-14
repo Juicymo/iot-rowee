@@ -62,10 +62,10 @@
 #define PIN_LCD_D7 27
 #define PIN_SERVO_PAN 29
 #define PIN_SERVO_TILT 30
-#define PIN_SENSOR_IR_FR 13
-#define PIN_SENSOR_IR_FL 14
-#define PIN_SENSOR_IR_BR 15
-#define PIN_SENSOR_IR_BL 16
+#define PIN_SENSOR_IR_FR 17
+#define PIN_SENSOR_IR_FL 16
+#define PIN_SENSOR_IR_BR 14
+#define PIN_SENSOR_IR_BL 15
 #define PIN_LIGHTS 2
 
 // Objects
@@ -470,12 +470,12 @@ void setup() {
     lcd.print("C");
 
     lcd.setCursor(0, 2);
-    lcd.print("R");
+    lcd.print("L");
     lcd.setCursor(19, 2);
     lcd.print("A");
 
     lcd.setCursor(0, 3);
-    lcd.print("L");
+    lcd.print("R");
     lcd.setCursor(19, 3);
     lcd.print("A");
 
@@ -611,9 +611,9 @@ void loop() {
 
         roboclaw.ReadCurrents(address, currentR, currentL);
         lcd.setCursor(15, 2);
-        lcd.print(currentR / 100.0);
-        lcd.setCursor(15, 3);
         lcd.print(currentL / 100.0);
+        lcd.setCursor(15, 3);
+        lcd.print(currentR / 100.0);
         //Serial.println(currentR / 100.0);
         //Serial.println(currentL / 100.0);
 
@@ -642,41 +642,23 @@ void loop() {
         lcd.print(temp / 10.0);
         //Serial.println(temp / 100.0);
 
-        if (motor_speed_right == 0) {
+        // Left Motor
+        if (motor_speed_left == 0) {
             lcd.setCursor(1, 2);
             lcd.print(" ");
         } else {
-            if (motor_direction_right == MOTOR_DIRECTION_FORWARD) {
-                lcd.setCursor(1, 2);
-                lcd.print(">");
-            } else {
-                lcd.setCursor(1, 2);
-                lcd.print("<");
-            }
-        }
-
-        lcd.setCursor(2, 2);
-        lcd.print("    ");
-        lcd.setCursor(2, 2);
-        lcd.print(motor_speed_right);
-        lcd.print("%");
-
-        if (motor_speed_left == 0) {
-            lcd.setCursor(1, 3);
-            lcd.print(" ");
-        } else {
             if (motor_direction_left == MOTOR_DIRECTION_FORWARD) {
-                lcd.setCursor(1, 3);
+                lcd.setCursor(1, 2);
                 lcd.print(">");
             } else {
-                lcd.setCursor(1, 3);
+                lcd.setCursor(1, 2);
                 lcd.print("<");
             }
         }
 
-        lcd.setCursor(2, 3);
+        lcd.setCursor(2, 2);
         lcd.print("    ");
-        lcd.setCursor(2, 3);
+        lcd.setCursor(2, 2);
         lcd.print(motor_speed_left);
         lcd.print("%");
 
@@ -684,13 +666,33 @@ void loop() {
         lcd.print(distance_bl);
         lcd.print("/");
         lcd.print(distance_fl);
-        lcd.print("cm");
+        lcd.print("cm ");
+
+        // Right Motor
+        if (motor_speed_right == 0) {
+            lcd.setCursor(1, 3);
+            lcd.print(" ");
+        } else {
+            if (motor_direction_right == MOTOR_DIRECTION_FORWARD) {
+                lcd.setCursor(1, 3);
+                lcd.print(">");
+            } else {
+                lcd.setCursor(1, 3);
+                lcd.print("<");
+            }
+        }
+
+        lcd.setCursor(2, 3);
+        lcd.print("    ");
+        lcd.setCursor(2, 3);
+        lcd.print(motor_speed_right);
+        lcd.print("%");
 
         lcd.setCursor(7, 3);
         lcd.print(distance_br);
         lcd.print("/");
         lcd.print(distance_fr);
-        lcd.print("cm");
+        lcd.print("cm ");
     }
 
     // Motors
