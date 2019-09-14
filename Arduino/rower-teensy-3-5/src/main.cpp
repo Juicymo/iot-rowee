@@ -682,13 +682,13 @@ void loop() {
 
         lcd.setCursor(7, 2);
         lcd.print(distance_bl);
-        lcd.print("cm ");
+        lcd.print("/");
         lcd.print(distance_fl);
         lcd.print("cm");
 
         lcd.setCursor(7, 3);
         lcd.print(distance_br);
-        lcd.print("cm ");
+        lcd.print("/");
         lcd.print(distance_fr);
         lcd.print("cm");
     }
