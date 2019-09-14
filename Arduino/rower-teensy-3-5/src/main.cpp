@@ -48,6 +48,18 @@
 #define LIGHTS_LED_COUNT 28 // 4 * 7 = 28
 #define LIGHTS_BLINK_DEVIATION 10
 
+#define COLLISION_SPEED_SLOW 30     // in speed percent (0 - 100)
+#define COLLISION_SPEED_DANGER 20   // in speed percent (0 - 100)
+
+#define COLLISION_FRONT_SLOW 20 // in cm
+#define COLLISION_FRONT_STOP 15 // in cm
+#define COLLISION_FRONT_BACK 12 // in cm
+#define COLLISION_FRONT_DANGER 10 // in cm
+#define COLLISION_BACK_SLOW 20 // in cm
+#define COLLISION_BACK_STOP 15 // in cm
+#define COLLISION_BACK_BACK 12 // in cm
+#define COLLISION_BACK_DANGER 10 // in cm
+
 // Intevals
 #define INTERVAL_LCD 500 // in ms
 #define INTERVAL_SEND 100 // in ms
@@ -176,6 +188,7 @@ bool lightsManualState;     // DO NOT adjust manually!
 
 int16_t currentR;
 int16_t currentL;
+int8_t battery;
 uint16_t voltage;
 uint16_t temp;
 uint32_t speedR;
@@ -484,6 +497,7 @@ void setup() {
     lcd.print("Rowee is OK");
 
     roboclaw.begin(38400);
+    roboclaw.SetMainVoltages(address, 93, 126);
 
     servoPan.attach(PIN_SERVO_PAN);
     servoTilt.attach(PIN_SERVO_TILT);
@@ -604,9 +618,15 @@ void loop() {
         lcdMillis = currentMillis;
 
         voltage = roboclaw.ReadMainBatteryVoltage(address);
+        battery = map(voltage, 93, 126, 0, 100);
         lcd.setCursor(15, 0);
         lcd.print(voltage / 10.0, 1);
-        //Serial.println(voltage / 10.0);
+
+        // uint16_t min;
+        // uint16_t max;
+        // roboclaw.ReadMinMaxMainVoltages(address, min, max);
+        // Serial.println(min);
+        // Serial.println(max);
 
         roboclaw.ReadCurrents(address, currentR, currentL);
         lcd.setCursor(15, 2);
@@ -737,20 +757,112 @@ void loop() {
             absMotorR = abs(nMotMixR) * speedInPercent;
             absMotorL = abs(nMotMixL) * speedInPercent;
 
-            if (nMotMixR < -5) {
-                roboclaw.BackwardM1(address, absMotorR);
-            } else if (nMotMixR > 5) {
-                roboclaw.ForwardM1(address, absMotorR);
-            } else {
-                roboclaw.ForwardM1(address, 0);
-            }
+            int distanceFront = min(distance_fl, distance_fr);
+            int distanceBack = min(distance_bl, distance_br);
 
-            if (nMotMixL < -5) {
-                roboclaw.BackwardM2(address, absMotorL);
-            } else if (nMotMixL > 5) {
-                roboclaw.ForwardM2(address, absMotorL);
-            } else {
+            // Backward
+            if ((nMotMixR > 5) && (nMotMixL > 5) && (distanceBack <= COLLISION_BACK_SLOW) && (distanceBack > COLLISION_BACK_STOP)) { // Operator wants backward but obstacle is nearby
+                lcd.setCursor(0, 0);
+                lcd.print("BWD Slow      ");
+
+                roboclaw.ForwardM1(address, min(absMotorR, COLLISION_SPEED_SLOW));
+                roboclaw.ForwardM2(address, min(absMotorL, COLLISION_SPEED_SLOW));
+            } else if ((nMotMixR > 5) && (nMotMixL > 5) && (distanceBack <= COLLISION_BACK_STOP) && (distanceBack > COLLISION_BACK_BACK)) { // Operator wants backward but obstacle is present
+                lcd.setCursor(0, 0);
+                lcd.print("BWD Stop!     ");
+
+                roboclaw.ForwardM1(address, 0);
                 roboclaw.ForwardM2(address, 0);
+            } else if ((nMotMixR > 5) && (nMotMixL > 5) && (distanceBack <= COLLISION_BACK_BACK) && (distanceBack > COLLISION_BACK_DANGER)) { // Operator wants backward but obstacle is too close
+                if (distanceFront > COLLISION_FRONT_STOP) { // If other direction is clear, perform movement
+                    lcd.setCursor(0, 0);
+                    lcd.print("BWD Danger!   ");
+
+                    roboclaw.BackwardM1(address, COLLISION_SPEED_DANGER);
+                    roboclaw.BackwardM2(address, COLLISION_SPEED_DANGER);
+                } else { // Otherwise Robot is blocked, in this case keep it stopped till obstacles are clear
+                    lcd.setCursor(0, 0);
+                    lcd.print("BWD Blocked!  ");
+
+                    roboclaw.ForwardM1(address, 0);
+                    roboclaw.ForwardM2(address, 0);
+                }
+            // Forward
+            } else if ((nMotMixR < -5) && (nMotMixL < -5) && (distanceFront <= COLLISION_FRONT_SLOW) && (distanceFront > COLLISION_FRONT_STOP)) { // Operator wants forward but obstacle is nearby
+                lcd.setCursor(0, 0);
+                lcd.print("FWD Slow      ");
+
+                roboclaw.BackwardM1(address, min(absMotorR, COLLISION_SPEED_SLOW));
+                roboclaw.BackwardM2(address, min(absMotorL, COLLISION_SPEED_SLOW));
+            } else if ((nMotMixR < -5) && (nMotMixL < -5) && (distanceFront <= COLLISION_FRONT_STOP) && (distanceFront > COLLISION_FRONT_BACK)) { // Operator wants forward but obstacle is present
+                lcd.setCursor(0, 0);
+                lcd.print("FWD Stop!     ");
+
+                roboclaw.ForwardM1(address, 0);
+                roboclaw.ForwardM2(address, 0);
+            } else if ((nMotMixR < -5) && (nMotMixL < -5) && (distanceFront <= COLLISION_FRONT_BACK) && (distanceFront > COLLISION_FRONT_DANGER)) { // Operator wants forward but obstacle is too close
+                if (distanceBack > COLLISION_BACK_STOP) { // If other direction is clear, perform movement
+                    lcd.setCursor(0, 0);
+                    lcd.print("FWD Danger!   ");
+
+                    roboclaw.ForwardM1(address, COLLISION_SPEED_DANGER);
+                    roboclaw.ForwardM2(address, COLLISION_SPEED_DANGER);
+                } else { // Otherwise Robot is blocked, in this case keep it stopped till obstacles are clear
+                    lcd.setCursor(0, 0);
+                    lcd.print("FWD Blocked!  ");
+
+                    roboclaw.ForwardM1(address, 0);
+                    roboclaw.ForwardM2(address, 0);
+                }
+            // Automatic
+            } else if (distanceFront <= COLLISION_FRONT_DANGER) { // Automatically move backward if possible
+                if (distanceBack > COLLISION_BACK_STOP) { // If other direction is clear, perform movement
+                    lcd.setCursor(0, 0);
+                    lcd.print("FWD Danger!   ");
+
+                    roboclaw.ForwardM1(address, COLLISION_SPEED_DANGER);
+                    roboclaw.ForwardM2(address, COLLISION_SPEED_DANGER);
+                } else { // Otherwise Robot is blocked, in this case keep it stopped till obstacles are clear
+                    lcd.setCursor(0, 0);
+                    lcd.print("FWD Blocked!  ");
+
+                    roboclaw.ForwardM1(address, 0);
+                    roboclaw.ForwardM2(address, 0);
+                }
+            } else if (distanceBack <= COLLISION_BACK_DANGER) { // Automatically move forward if possible
+                if (distanceFront > COLLISION_FRONT_STOP) { // If other direction is clear, perform movement
+                    lcd.setCursor(0, 0);
+                    lcd.print("BWD Danger!   ");
+
+                    roboclaw.BackwardM1(address, COLLISION_SPEED_DANGER);
+                    roboclaw.BackwardM2(address, COLLISION_SPEED_DANGER);
+                } else { // Otherwise Robot is blocked, in this case keep it stopped till obstacles are clear
+                    lcd.setCursor(0, 0);
+                    lcd.print("BWD Blocked!  ");
+
+                    roboclaw.ForwardM1(address, 0);
+                    roboclaw.ForwardM2(address, 0);
+                }
+            // Free
+            } else { // Operator is not limited
+                lcd.setCursor(0, 0);
+                lcd.print("Rowee is OK   ");
+
+                if (nMotMixR < -5) {
+                    roboclaw.BackwardM1(address, absMotorR);
+                } else if (nMotMixR > 5) {
+                    roboclaw.ForwardM1(address, absMotorR);
+                } else {
+                    roboclaw.ForwardM1(address, 0);
+                }
+
+                if (nMotMixL < -5) {
+                    roboclaw.BackwardM2(address, absMotorL);
+                } else if (nMotMixL > 5) {
+                    roboclaw.ForwardM2(address, absMotorL);
+                } else {
+                    roboclaw.ForwardM2(address, 0);
+                }
             }
         } else if (mode_control == static_cast<int8_t>(ModeControl::CLOSED_LOOP)) {
             // Inza's Differential Steering - Closed Loop Control
@@ -882,7 +994,7 @@ void loop() {
         dataRobotToRemote.max_speed = speed;        // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
         dataRobotToRemote.max_acceleration = 100;   // maximum PID loop acceleration, in percentage 0 - 100 (%)
         dataRobotToRemote.action = static_cast<int8_t>(AiAction::OFF);
-        dataRobotToRemote.battery = 100;
+        dataRobotToRemote.battery = battery;
         dataRobotToRemote.motor_right = motor_speed_right;
         dataRobotToRemote.motor_left = motor_speed_left;
         dataRobotToRemote.distance_fr = distance_fr;      // distance Front-Right, in cm
