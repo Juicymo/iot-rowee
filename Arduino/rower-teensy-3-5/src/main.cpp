@@ -31,13 +31,13 @@
 #define TIMEOUT_ROBOCLAW 10000 // in ms
 
 #define SERVO_PAN_CENTER 102
-#define SERVO_PAN_INCREMENT 3
-#define SERVO_PAN_TRIM 30
+#define SERVO_PAN_INCREMENT 5
+#define SERVO_PAN_TRIM 60
 #define SERVO_PAN_MIN SERVO_PAN_CENTER-SERVO_PAN_TRIM
 #define SERVO_PAN_MAX SERVO_PAN_CENTER+SERVO_PAN_TRIM
 
 #define SERVO_TILT_CENTER 84
-#define SERVO_TILT_INCREMENT 3
+#define SERVO_TILT_INCREMENT 5
 #define SERVO_TILT_TRIM 30
 #define SERVO_TILT_MIN SERVO_TILT_CENTER-SERVO_TILT_TRIM
 #define SERVO_TILT_MAX SERVO_TILT_CENTER+SERVO_TILT_TRIM
@@ -260,20 +260,44 @@ void setupMotorBoard() {
     roboclaw.SetM2VelocityPID(address, LKp, LKi, LKd, qppsL);
 }
 
-void servoPanMoveLeft() {
+// speed - 0 - 100
+void servoPanMoveLeft(int speed = 30) {
+    int scaled_inrement = SERVO_PAN_INCREMENT * (speed / 100.0);
 
+    if ((servoPanRotation - scaled_inrement) > SERVO_PAN_MIN) {
+        servoPanRotation -= scaled_inrement;
+        servoPan.write(servoPanRotation);
+    }
 }
 
-void servoPanMoveRight() {
+// speed - 0 - 100
+void servoPanMoveRight(int speed = 30) {
+    int scaled_inrement = SERVO_PAN_INCREMENT * (speed / 100.0);
 
+    if ((servoPanRotation + scaled_inrement) < SERVO_PAN_MAX) {
+        servoPanRotation += scaled_inrement;
+        servoPan.write(servoPanRotation);
+    }
 }
 
-void servoTiltMoveUp() {
+// speed - 0 - 100
+void servoTiltMoveDown(int speed = 30) {
+    int scaled_inrement = SERVO_TILT_INCREMENT * (speed / 100.0);
 
+    if ((servoTiltRotation - scaled_inrement) > SERVO_TILT_MIN) {
+        servoTiltRotation -= scaled_inrement;
+        servoTilt.write(servoTiltRotation);
+    }
 }
 
-void servoTiltMoveDown() {
+// speed - 0 - 100
+void servoTiltMoveUp(int speed = 30) {
+    int scaled_inrement = SERVO_TILT_INCREMENT * (speed / 100.0);
 
+    if ((servoTiltRotation + scaled_inrement) < SERVO_TILT_MAX) {
+        servoTiltRotation += scaled_inrement;
+        servoTilt.write(servoTiltRotation);
+    }
 }
 
 uint32_t lightsColorWheel(byte WheelPos) {
@@ -893,8 +917,25 @@ void loop() {
             // TODO for now, robot will stop when in turret mode, in future AI can control its movement
             roboclaw.DutyM1M2(address, 0, 0); // Full Stop
 
-            // servoPan.write(servoPanRotation);
-            // servoTilt.write(servoTiltRotation);
+            if (x > 5 || x < -5) {
+                if (x < -5) {
+                    int scaled_x = map(x, -100, -5, 100, 1);
+                    servoPanMoveRight(scaled_x);
+                } else if (x > 5) {
+                    int scaled_x = map(x, 5, 100, 1, 100);
+                    servoPanMoveLeft(scaled_x);
+                }
+            }
+
+            if (y > 5 || y < -5) {
+                if (y < -5) {
+                    int scaled_y = map(y, -100, -5, 100, 1);
+                    servoTiltMoveUp(scaled_y);
+                } else if (y > 5) {
+                    int scaled_y = map(y, 5, 100, 1, 100);
+                    servoTiltMoveDown(scaled_y);
+                }
+            }
         }
 
         if (mode_lights == static_cast<int8_t>(ModeLights::AMBIENT)) {
