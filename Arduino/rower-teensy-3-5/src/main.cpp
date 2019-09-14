@@ -9,7 +9,7 @@
 #include "PWMServo.h"
 #include "Plotter.h"
 #include "LiquidCrystal.h"
-//#include "SharpIR.h"
+#include "SharpIR.h"
 #include "Adafruit_NeoPixel.h"
 
 // Local Libraries
@@ -47,6 +47,10 @@
 #define PIN_LCD_D7 27
 #define PIN_SERVO_PAN 29
 #define PIN_SERVO_TILT 30
+#define PIN_SENSOR_IR_FR 13
+#define PIN_SENSOR_IR_FL 14
+#define PIN_SENSOR_IR_BR 15
+#define PIN_SENSOR_IR_BL 16
 
 // Objects
 Plotter p;
@@ -56,7 +60,10 @@ RoboClaw roboclaw(&Serial1, TIMEOUT_ROBOCLAW);
 LiquidCrystal lcd(PIN_LCD_RS, PIN_LCD_EN, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
 PWMServo servoPan;     // left-right movement
 PWMServo servoTilt;    // top-down movement
-//SharpIR sensorFR(SharpIR::GP2Y0A41SK0F, A0);
+SharpIR sensorFR(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_FR);
+SharpIR sensorFL(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_FL);
+SharpIR sensorBR(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_BR);
+SharpIR sensorBL(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_BL);
 
 // Enums
 enum class AiAction {
@@ -179,6 +186,12 @@ int8_t mode_lights;      // 0 = OFF, 1 = ambient (white front, red back), 2 = ad
 int8_t brightness;       // lights intensity, in percentage 0 - 100 (%)
 int8_t acceleration;     // maximum PID loop acceleration configuration, in percentage 0 - 100 (%)
 
+// Send Data
+int8_t distance_fr;      // distance Front-Right, in cm, 9-81cm
+int8_t distance_fl;      // distance Front-Left, in cm, 9-81cm
+int8_t distance_br;      // distance Back-Right, in cm, 9-81cm
+int8_t distance_bl;      // distance Back-Left, in cm, 9-81cm
+
 // RoboClaw address
 #define address 0x80
 #define qppsR 9500
@@ -292,7 +305,11 @@ void loop() {
     motor_speed_left_qpps = roboclaw.ReadSpeedM2(address, &motor_direction_left);
     motor_speed_left = abs(round((motor_speed_left_qpps / (MAX_SPEED_L * 1.0)) * 100));
 
-    // int distance = sensor.getDistance();
+    // Load Distance
+    distance_fr = sensorFR.getDistance();
+    distance_fl = sensorFL.getDistance();
+    distance_br = sensorBR.getDistance();
+    distance_bl = sensorBL.getDistance();
 
     if (currentMillis - lcdMillis >= INTERVAL_LCD) {
         lcdMillis = currentMillis;
