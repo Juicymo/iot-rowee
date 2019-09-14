@@ -525,10 +525,10 @@ void loop() {
         dataRobotToRemote.battery = 100;
         dataRobotToRemote.motor_right = motor_speed_right;
         dataRobotToRemote.motor_left = motor_speed_left;
-        dataRobotToRemote.distance_fr = 0;      // distance Front-Right, in cm
-        dataRobotToRemote.distance_fl = 0;      // distance Front-Left, in cm
-        dataRobotToRemote.distance_br = 0;      // distance Back-Right, in cm
-        dataRobotToRemote.distance_br = 0;      // distance Back-Left, in cm
+        dataRobotToRemote.distance_fr = distance_fr;      // distance Front-Right, in cm
+        dataRobotToRemote.distance_fl = distance_fl;      // distance Front-Left, in cm
+        dataRobotToRemote.distance_br = distance_br;      // distance Back-Right, in cm
+        dataRobotToRemote.distance_bl = distance_bl;      // distance Back-Left, in cm
 
         ETout.sendData();
     }
