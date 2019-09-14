@@ -752,10 +752,10 @@ void loop() {
         EsploraTFT.text(printModeEmergency, PADDING_LEFT + COLUMN_WIDTH + CHAR_WIDTH + 13, 108);
 
         // # Distance
-        drawTopDistanceIndicator(map(distance_fl, 9, 81, 0, 100), 5, 0, INDICATOR_LEFT);
-        drawTopDistanceIndicator(map(distance_fr, 9, 81, 0, 100), 160 - 25, 0, INDICATOR_RIGHT);
-        drawBottomDistanceIndicator(map(distance_bl, 9, 81, 0, 100), 5, 128 - 60, INDICATOR_LEFT);
-        drawBottomDistanceIndicator(map(distance_br, 9, 81, 0, 100), 160 - 25, 128 - 60, INDICATOR_RIGHT);
+        drawTopDistanceIndicator(100 - map(distance_fl, 9, 81, 0, 100), 5, 0, INDICATOR_LEFT);
+        drawTopDistanceIndicator(100 - map(distance_fr, 9, 81, 0, 100), 160 - 25, 0, INDICATOR_RIGHT);
+        drawBottomDistanceIndicator(100 - map(distance_bl, 9, 81, 0, 100), 5, 128 - 60, INDICATOR_LEFT);
+        drawBottomDistanceIndicator(100 - map(distance_br, 9, 81, 0, 100), 160 - 25, 128 - 60, INDICATOR_RIGHT);
 
         // # Motors max speed
         drawMotorMaxSpeedIndicator(speed, PADDING_LEFT + 20, 128 - 50);
