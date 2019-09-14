@@ -102,29 +102,29 @@ enum class ModeLights {
 
 // Structs
 struct RECEIVE_DATA_STRUCTURE {
-  int16_t mode_control;     // motor control mode, 0 = open loop, 1 = closed loop, 2 = turret control
-  int16_t mode_assist;      // autopilot, 0 = off, 1 = adjust, 2 = wander, 3 = roam
-  int16_t mode_emergency;   // 0 = OK, 1 = full_stop, 2 = full_stop + reset_pid
-  int16_t mode_lights;      // 0 = OFF, 1 = ambient (white front, red back), 2 = advanced (default + directional blink), 3 = full ON (white everywhere)
-  int16_t brightness;       // lights intensity, in percentage 0 - 100 (%)
-  int16_t speed;            // speed, raw data from controls
-  int16_t x;                // joystick X axis, raw data from controls
-  int16_t y;                // joystick Y axis, raw data from controls
-  int16_t acceleration;     // maximum PID loop acceleration configuration, in percentage 0 - 100 (%)
+  int8_t mode_control;     // motor control mode, 0 = open loop, 1 = closed loop, 2 = turret control
+  int8_t mode_assist;      // autopilot, 0 = off, 1 = adjust, 2 = wander, 3 = roam
+  int8_t mode_emergency;   // 0 = OK, 1 = full_stop, 2 = full_stop + reset_pid
+  int8_t mode_lights;      // 0 = OFF, 1 = ambient (white front, red back), 2 = advanced (default + directional blink), 3 = full ON (white everywhere)
+  int8_t brightness;       // lights intensity, in percentage 0 - 100 (%)
+  int8_t speed;            // speed, in percentage 0 - 100 (%)
+  int8_t x;                // joystick X axis, in percentage -100 - 100 (%)
+  int8_t y;                // joystick Y axis, in percentage -100 - 100 (%)
+  int8_t acceleration;     // maximum PID loop acceleration configuration, in percentage 0 - 100 (%)
 };
 struct SEND_DATA_STRUCTURE {
-  int16_t max_speed;        // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
-  int16_t max_acceleration; // maximum PID loop acceleration, in percentage 0 - 100 (%)
-  int16_t action;           // current robot's AI action: 0 = OFF, 1 = Idle, 2 = Planning, 3 = Forward, 4 = Backward, 5 = Left, 6 = Right, 7 = Brake, 8 = Stop,
+  int8_t max_speed;        // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
+  int8_t max_acceleration; // maximum PID loop acceleration, in percentage 0 - 100 (%)
+  int8_t action;           // current robot's AI action: 0 = OFF, 1 = Idle, 2 = Planning, 3 = Forward, 4 = Backward, 5 = Left, 6 = Right, 7 = Brake, 8 = Stop,
                             // 9 = Slow Forward, 10 = Fast Forward, 11 = Slow Backward, 12 = Fast Backward,
                             // 13 = Avoid Left, 14 = Avoid Right, 15 = Blocked
-  int16_t battery;          // battery, in percentage 0 - 100 (%)
-  int16_t motor_right;      // power to right motor, in percentage 0 - 100 (%)
-  int16_t motor_left;       // power to left motor, in percentage 0 - 100 (%)
-  int16_t distance_fr;      // distance Front-Right, in cm
-  int16_t distance_fl;      // distance Front-Left, in cm
-  int16_t distance_br;      // distance Back-Right, in cm
-  int16_t distance_bl;      // distance Back-Left, in cm
+  int8_t battery;          // battery, in percentage 0 - 100 (%)
+  int8_t motor_right;      // power to right motor, in percentage 0 - 100 (%)
+  int8_t motor_left;       // power to left motor, in percentage 0 - 100 (%)
+  int8_t distance_fr;      // distance Front-Right, in cm, 9-81cm
+  int8_t distance_fl;      // distance Front-Left, in cm, 9-81cm
+  int8_t distance_br;      // distance Back-Right, in cm, 9-81cm
+  int8_t distance_bl;      // distance Back-Left, in cm, 9-81cm
 };
 
 // Variables
@@ -134,13 +134,10 @@ SEND_DATA_STRUCTURE dataRobotToRemote;
 unsigned long lcdMillis = 0;
 unsigned long sendMillis = 0;
 
-int16_t speed;
-int16_t limitedSpeed;
-int16_t normSpeed;
-int16_t percentSpeed;
+int8_t speed;
 double speedInPercent;
-int16_t x;
-int16_t y;
+int8_t x;
+int8_t y;
 int absMotorL;
 int absMotorR;
 
@@ -169,20 +166,18 @@ int8_t motor_speed_left;
 
 int     mixX;              // Joystick X input                     (0..+127)
 int     mixY;              // Joystick Y input                     (0..+127)
-
 int adjustedX;
 int adjustedY;
-
 int adjustedMotMixR;
 int adjustedMotMixL;
 
 // Received Data
-int16_t mode_control;     // motor control mode, 0 = open loop, 1 = closed loop, 2 = turret control
-int16_t mode_assist;      // autopilot, 0 = off, 1 = adjust, 2 = wander, 3 = roam
-int16_t mode_emergency;   // 0 = OK, 1 = full_stop, 2 = full_stop + reset_pid
-int16_t mode_lights;      // 0 = OFF, 1 = ambient (white front, red back), 2 = advanced (default + directional blink), 3 = full ON (white everywhere)
-int16_t brightness;       // lights intensity, in percentage 0 - 100 (%)
-int16_t acceleration;     // maximum PID loop acceleration configuration, in percentage 0 - 100 (%)
+int8_t mode_control;     // motor control mode, 0 = open loop, 1 = closed loop, 2 = turret control
+int8_t mode_assist;      // autopilot, 0 = off, 1 = adjust, 2 = wander, 3 = roam
+int8_t mode_emergency;   // 0 = OK, 1 = full_stop, 2 = full_stop + reset_pid
+int8_t mode_lights;      // 0 = OFF, 1 = ambient (white front, red back), 2 = advanced (default + directional blink), 3 = full ON (white everywhere)
+int8_t brightness;       // lights intensity, in percentage 0 - 100 (%)
+int8_t acceleration;     // maximum PID loop acceleration configuration, in percentage 0 - 100 (%)
 
 // RoboClaw address
 #define address 0x80
@@ -267,10 +262,10 @@ void setup() {
     setupMotorBoard();
 
     // setupModes();
-    mode_control = static_cast<int16_t>(ModeControl::OPEN_LOOP);
-    mode_assist = static_cast<int16_t>(ModeAssist::OFF);
-    mode_emergency = static_cast<int16_t>(ModeEmergency::OK);
-    mode_lights = static_cast<int16_t>(ModeLights::OFF);
+    mode_control = static_cast<int8_t>(ModeControl::OPEN_LOOP);
+    mode_assist = static_cast<int8_t>(ModeAssist::OFF);
+    mode_emergency = static_cast<int8_t>(ModeEmergency::OK);
+    mode_lights = static_cast<int8_t>(ModeLights::OFF);
 }
 
 void loop() {
@@ -284,26 +279,18 @@ void loop() {
         mode_lights = dataRemoteToRobot.mode_lights;
         brightness = dataRemoteToRobot.brightness;
         speed = dataRemoteToRobot.speed;
-        x = dataRemoteToRobot.x - 20;
-        y = dataRemoteToRobot.y - 5;
+        x = dataRemoteToRobot.x;
+        y = dataRemoteToRobot.y;
         acceleration = dataRemoteToRobot.acceleration;
     }
 
     // Compute
-    limitedSpeed = 950 - min(dataRemoteToRobot.speed, 950);
-    normSpeed = map(limitedSpeed, 1, 950, 1, 127);
-    percentSpeed = map(normSpeed, 1, 127, 30, 100);
-    speedInPercent = percentSpeed / 100.0;
+    speedInPercent = speed / 100.0;
 
     motor_speed_right_qpps = roboclaw.ReadSpeedM1(address, &motor_direction_right);
     motor_speed_right = abs(round((motor_speed_right_qpps / (MAX_SPEED_R * 1.0)) * 100));
     motor_speed_left_qpps = roboclaw.ReadSpeedM2(address, &motor_direction_left);
     motor_speed_left = abs(round((motor_speed_left_qpps / (MAX_SPEED_L * 1.0)) * 100));
-
-    //Serial.println(speedInPercent);
-
-    //Serial.println(x);
-    //Serial.println(y);
 
     // int distance = sensor.getDistance();
 
@@ -324,20 +311,20 @@ void loop() {
         //Serial.println(currentL / 100.0);
 
         lcd.setCursor(0, 1);
-        if (mode_control == static_cast<int16_t>(ModeControl::OPEN_LOOP)) {
+        if (mode_control == static_cast<int8_t>(ModeControl::OPEN_LOOP)) {
             lcd.print("OL");
-        } else if (mode_control == static_cast<int16_t>(ModeControl::CLOSED_LOOP)) {
+        } else if (mode_control == static_cast<int8_t>(ModeControl::CLOSED_LOOP)) {
             lcd.print("CL");
         } else { // TURRET
             lcd.print("TU");
         }
 
         lcd.setCursor(6, 1);
-        if (mode_assist == static_cast<int16_t>(ModeAssist::OFF)) {
+        if (mode_assist == static_cast<int8_t>(ModeAssist::OFF)) {
             lcd.print("OFF");
-        } else if (mode_assist == static_cast<int16_t>(ModeAssist::ADJUST)) {
+        } else if (mode_assist == static_cast<int8_t>(ModeAssist::ADJUST)) {
             lcd.print("ADJ");
-        } else if (mode_assist == static_cast<int16_t>(ModeAssist::WANDER)) {
+        } else if (mode_assist == static_cast<int8_t>(ModeAssist::WANDER)) {
             lcd.print("WAN");
         } else { // ROAM
             lcd.print("ROA");
@@ -395,14 +382,14 @@ void loop() {
     // M1 - Right = 9361
     // M2 - Left = 8964
 
-    if (mode_emergency == static_cast<int16_t>(ModeEmergency::OK)) {
+    if (mode_emergency == static_cast<int8_t>(ModeEmergency::OK)) {
         lcd.setCursor(0, 0);
         lcd.print("Rowee is OK   ");
 
-        if (mode_control == static_cast<int16_t>(ModeControl::OPEN_LOOP)) {
+        if (mode_control == static_cast<int8_t>(ModeControl::OPEN_LOOP)) {
             // RoboClaw Differential Steering (not perfect) - Open Loop Control
-            // nJoyX = map(x, -532, 491, -128, 127);
-            // nJoyY = map(y, -517, 506, -128, 127);
+            // nJoyX = map(x, -100, 100, -128, 127);
+            // nJoyY = map(y, -100, 100, -128, 127);
             //
             // mixX = map(nJoyX, -128, 127, 0, 127);
             // mixY = map(nJoyY, -128, 127, 0, 127);
@@ -423,8 +410,8 @@ void loop() {
             // }
 
             // Inza's Differential Steering - Open Loop Control
-            nJoyX = map(x, -532, 491, -128, 127);
-            nJoyY = map(y, -517, 506, -128, 127);
+            nJoyX = map(x, -100, 100, -128, 127);
+            nJoyY = map(y, -100, 100, -128, 127);
             computeDifferentialSteering();
 
             absMotorR = abs(nMotMixR) * speedInPercent;
@@ -445,10 +432,10 @@ void loop() {
             } else {
                 roboclaw.ForwardM2(address, 0);
             }
-        } else if (mode_control == static_cast<int16_t>(ModeControl::CLOSED_LOOP)) {
+        } else if (mode_control == static_cast<int8_t>(ModeControl::CLOSED_LOOP)) {
             // Inza's Differential Steering - Closed Loop Control
-            nJoyX = map(x, -532, 491, -128, 127);
-            nJoyY = map(y, -517, 506, -128, 127);
+            nJoyX = map(x, -100, 100, -128, 127);
+            nJoyY = map(y, -100, 100, -128, 127);
             computeDifferentialSteering();
 
             // adjustedMotMixR = nMotMixR * speedInPercent;
@@ -476,7 +463,7 @@ void loop() {
 
             // TODO control servos
         }
-    } else if (mode_emergency == static_cast<int16_t>(ModeEmergency::PID_RESET)) {
+    } else if (mode_emergency == static_cast<int8_t>(ModeEmergency::PID_RESET)) {
         roboclaw.DutyM1M2(address, 0, 0); // Full Stop
         setupMotorBoard();
         lcd.setCursor(0, 0);
@@ -488,8 +475,8 @@ void loop() {
     }
 
     // Inza's Simple Duty Control (for testing purposes)
-    // nJoyX = map(x, -532, 491, -128, 127);
-    // nJoyY = map(y, -517, 506, -128, 127);
+    // nJoyX = map(x, -100, 100, -128, 127);
+    // nJoyY = map(y, -100, 100, -128, 127);
     // computeDifferentialSteering();
 
     // if ((nMotMixR < -5) || (nMotMixR > 5) || (nMotMixL < -5) || (nMotMixL > 5)) {
@@ -503,9 +490,9 @@ void loop() {
         sendMillis = currentMillis;
 
         // Send data to Remote
-        dataRobotToRemote.max_speed = percentSpeed;     // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
-        dataRobotToRemote.max_acceleration = 100;       // maximum PID loop acceleration, in percentage 0 - 100 (%)
-        dataRobotToRemote.action = static_cast<int16_t>(AiAction::OFF);
+        dataRobotToRemote.max_speed = speed;        // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
+        dataRobotToRemote.max_acceleration = 100;   // maximum PID loop acceleration, in percentage 0 - 100 (%)
+        dataRobotToRemote.action = static_cast<int8_t>(AiAction::OFF);
         dataRobotToRemote.battery = 100;
         dataRobotToRemote.motor_right = motor_speed_right;
         dataRobotToRemote.motor_left = motor_speed_left;

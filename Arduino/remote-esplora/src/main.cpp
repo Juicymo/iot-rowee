@@ -80,29 +80,29 @@ enum class ModeLights {
 
 // Structs
 struct SEND_DATA_STRUCTURE {
-  int16_t mode_control;     // motor control mode, 0 = open loop, 1 = closed loop, 2 = turret control
-  int16_t mode_assist;      // autopilot, 0 = off, 1 = adjust, 2 = wander, 3 = roam
-  int16_t mode_emergency;   // 0 = OK, 1 = full_stop, 2 = full_stop + reset_pid
-  int16_t mode_lights;      // 0 = OFF, 1 = ambient (white front, red back), 2 = advanced (default + directional blink), 3 = full ON (white everywhere)
-  int16_t brightness;       // lights intensity, in percentage 0 - 100 (%)
-  int16_t speed;            // speed, raw data from controls
-  int16_t x;                // joystick X axis, raw data from controls
-  int16_t y;                // joystick Y axis, raw data from controls
-  int16_t acceleration;     // maximum PID loop acceleration configuration, in percentage 0 - 100 (%)
+  int8_t mode_control;     // motor control mode, 0 = open loop, 1 = closed loop, 2 = turret control
+  int8_t mode_assist;      // autopilot, 0 = off, 1 = adjust, 2 = wander, 3 = roam
+  int8_t mode_emergency;   // 0 = OK, 1 = full_stop, 2 = full_stop + reset_pid
+  int8_t mode_lights;      // 0 = OFF, 1 = ambient (white front, red back), 2 = advanced (default + directional blink), 3 = full ON (white everywhere)
+  int8_t brightness;       // lights intensity, in percentage 0 - 100 (%)
+  int8_t speed;            // speed, in percentage 0 - 100 (%)
+  int8_t x;                // joystick X axis, in percentage -100 - 100 (%)
+  int8_t y;                // joystick Y axis, in percentage -100 - 100 (%)
+  int8_t acceleration;     // maximum PID loop acceleration configuration, in percentage 0 - 100 (%)
 };
 struct RECEIVE_DATA_STRUCTURE {
-  int16_t max_speed;        // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
-  int16_t max_acceleration; // maximum PID loop acceleration, in percentage 0 - 100 (%)
-  int16_t action;           // current robot's AI action: 0 = OFF, 1 = Idle, 2 = Planning, 3 = Forward, 4 = Backward, 5 = Left, 6 = Right, 7 = Brake, 8 = Stop,
+  int8_t max_speed;        // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
+  int8_t max_acceleration; // maximum PID loop acceleration, in percentage 0 - 100 (%)
+  int8_t action;           // current robot's AI action: 0 = OFF, 1 = Idle, 2 = Planning, 3 = Forward, 4 = Backward, 5 = Left, 6 = Right, 7 = Brake, 8 = Stop,
                             // 9 = Slow Forward, 10 = Fast Forward, 11 = Slow Backward, 12 = Fast Backward,
                             // 13 = Avoid Left, 14 = Avoid Right, 15 = Blocked
-  int16_t battery;          // battery, in percentage 0 - 100 (%)
-  int16_t motor_right;      // power to right motor, in percentage 0 - 100 (%)
-  int16_t motor_left;       // power to left motor, in percentage 0 - 100 (%)
-  int16_t distance_fr;      // distance Front-Right, in cm
-  int16_t distance_fl;      // distance Front-Left, in cm
-  int16_t distance_br;      // distance Back-Right, in cm
-  int16_t distance_bl;      // distance Back-Left, in cm
+  int8_t battery;          // battery, in percentage 0 - 100 (%)
+  int8_t motor_right;      // power to right motor, in percentage 0 - 100 (%)
+  int8_t motor_left;       // power to left motor, in percentage 0 - 100 (%)
+  int8_t distance_fr;      // distance Front-Right, in cm, 9-81cm
+  int8_t distance_fl;      // distance Front-Left, in cm, 9-81cm
+  int8_t distance_br;      // distance Back-Right, in cm, 9-81cm
+  int8_t distance_bl;      // distance Back-Left, in cm, 9-81cm
 };
 
 // Variables
@@ -114,32 +114,38 @@ unsigned long sendMillis = 0;
 unsigned long readInputMillis = 0;
 
 // Compute
+unsigned int light;
+int temperature;
 int16_t luminosity;
+int16_t limitedSpeed;       // 0-950
+int16_t rawSpeed;           // 0-1024
+int16_t rawX;               // -512-512
+int16_t rawY;               // -512-512
 
 // Out
-int16_t mode_control;
-int16_t mode_assist;
-int16_t mode_emergency;
-int16_t mode_lights;
-int16_t brightness;
-int16_t speed;
-int16_t x;
-int16_t y;
-int16_t acceleration;
+int8_t mode_control;
+int8_t mode_assist;
+int8_t mode_emergency;
+int8_t mode_lights;
+int8_t brightness;
+int8_t speed;
+int8_t x;
+int8_t y;
+int8_t acceleration;
 
 // In
-int16_t max_speed;          // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
-int16_t max_acceleration;   // maximum PID loop acceleration, in percentage 0 - 100 (%)
-int16_t action;             // current robot's AI action: 0 = OFF, 1 = Idle, 2 = Planning, 3 = Forward, 4 = Backward, 5 = Left, 6 = Right, 7 = Brake, 8 = Stop,
+int8_t max_speed;           // maximum PID loop speed, in percentage 0 - 100 (%) (computed based on the speed control)
+int8_t max_acceleration;    // maximum PID loop acceleration, in percentage 0 - 100 (%)
+int8_t action;              // current robot's AI action: 0 = OFF, 1 = Idle, 2 = Planning, 3 = Forward, 4 = Backward, 5 = Left, 6 = Right, 7 = Brake, 8 = Stop,
                             // 9 = Slow Forward, 10 = Fast Forward, 11 = Slow Backward, 12 = Fast Backward,
                             // 13 = Avoid Left, 14 = Avoid Right, 15 = Blocked
-int16_t battery;            // battery, in percentage 0 - 100 (%)
-int16_t motor_right;        // power to right motor, in percentage 0 - 100 (%)
-int16_t motor_left;         // power to left motor, in percentage 0 - 100 (%)
-int16_t distance_fr;        // distance Front-Right, in cm, 9-81cm
-int16_t distance_fl;        // distance Front-Left, in cm, 9-81cm
-int16_t distance_br;        // distance Back-Right, in cm, 9-81cm
-int16_t distance_bl;        // distance Back-Left, in cm, 9-81cm
+int8_t battery;             // battery, in percentage 0 - 100 (%)
+int8_t motor_right;         // power to right motor, in percentage 0 - 100 (%)
+int8_t motor_left;          // power to left motor, in percentage 0 - 100 (%)
+int8_t distance_fr;         // distance Front-Right, in cm, 9-81cm
+int8_t distance_fl;         // distance Front-Left, in cm, 9-81cm
+int8_t distance_br;         // distance Back-Right, in cm, 9-81cm
+int8_t distance_bl;         // distance Back-Left, in cm, 9-81cm
 
 char printSpeedBuffer[4] = "";
 char printAccelerationBuffer[4] = "";
@@ -154,54 +160,54 @@ char printModeEmergency[4] = "";
 char printModeLights[4] = "";
 
 // Functions
-String labelAction(int16_t action) {
+String labelAction(int8_t action) {
     switch (action) {
-        case static_cast<int16_t>(AiAction::OFF):
+        case static_cast<int8_t>(AiAction::OFF):
             return "OFF    ";
             break;
-        case static_cast<int16_t>(AiAction::IDLE):
+        case static_cast<int8_t>(AiAction::IDLE):
             return "IDLE   ";
             break;
-        case static_cast<int16_t>(AiAction::PLANNING):
+        case static_cast<int8_t>(AiAction::PLANNING):
             return "PLAN   ";
             break;
-        case static_cast<int16_t>(AiAction::FORWARD):
+        case static_cast<int8_t>(AiAction::FORWARD):
             return ">>     ";
             break;
-        case static_cast<int16_t>(AiAction::BACKWARD):
+        case static_cast<int8_t>(AiAction::BACKWARD):
             return "<<     ";
             break;
-        case static_cast<int16_t>(AiAction::LEFT):
+        case static_cast<int8_t>(AiAction::LEFT):
             return "LEFT   ";
             break;
-        case static_cast<int16_t>(AiAction::RIGHT):
+        case static_cast<int8_t>(AiAction::RIGHT):
             return "RIGHT  ";
             break;
-        case static_cast<int16_t>(AiAction::BRAKE):
+        case static_cast<int8_t>(AiAction::BRAKE):
             return "BRAKE  ";
             break;
-        case static_cast<int16_t>(AiAction::STOP):
+        case static_cast<int8_t>(AiAction::STOP):
             return "STOP   ";
             break;
-        case static_cast<int16_t>(AiAction::SLOW_FORWARD):
+        case static_cast<int8_t>(AiAction::SLOW_FORWARD):
             return ">      ";
             break;
-        case static_cast<int16_t>(AiAction::FAST_FORWARD):
+        case static_cast<int8_t>(AiAction::FAST_FORWARD):
             return ">>>    ";
             break;
-        case static_cast<int16_t>(AiAction::SLOW_BACKWARD):
+        case static_cast<int8_t>(AiAction::SLOW_BACKWARD):
             return "<      ";
             break;
-        case static_cast<int16_t>(AiAction::FAST_BACKWARD):
+        case static_cast<int8_t>(AiAction::FAST_BACKWARD):
             return "<<<    ";
             break;
-        case static_cast<int16_t>(AiAction::AVOID_LEFT):
+        case static_cast<int8_t>(AiAction::AVOID_LEFT):
             return "AVOID L";
             break;
-        case static_cast<int16_t>(AiAction::AVOID_RIGHT):
+        case static_cast<int8_t>(AiAction::AVOID_RIGHT):
             return "AVOID R";
             break;
-        case static_cast<int16_t>(AiAction::BLOCKED):
+        case static_cast<int8_t>(AiAction::BLOCKED):
             return "BLOCKED";
             break;
         default:
@@ -210,15 +216,15 @@ String labelAction(int16_t action) {
     }
 }
 
-String labelModeControl(int16_t mode_control) {
+String labelModeControl(int8_t mode_control) {
     switch (mode_control) {
-        case static_cast<int16_t>(ModeControl::OPEN_LOOP):
+        case static_cast<int8_t>(ModeControl::OPEN_LOOP):
             return "OL";
             break;
-        case static_cast<int16_t>(ModeControl::CLOSED_LOOP):
+        case static_cast<int8_t>(ModeControl::CLOSED_LOOP):
             return "CL";
             break;
-        case static_cast<int16_t>(ModeControl::TURRET):
+        case static_cast<int8_t>(ModeControl::TURRET):
             return "TU";
             break;
         default:
@@ -227,18 +233,18 @@ String labelModeControl(int16_t mode_control) {
     }
 }
 
-String labelModeAssist(int16_t mode_assist) {
+String labelModeAssist(int8_t mode_assist) {
     switch (mode_assist) {
-        case static_cast<int16_t>(ModeAssist::OFF):
+        case static_cast<int8_t>(ModeAssist::OFF):
             return "OFF";
             break;
-        case static_cast<int16_t>(ModeAssist::ADJUST):
+        case static_cast<int8_t>(ModeAssist::ADJUST):
             return "ADJ";
             break;
-        case static_cast<int16_t>(ModeAssist::WANDER):
+        case static_cast<int8_t>(ModeAssist::WANDER):
             return "WAN";
             break;
-        case static_cast<int16_t>(ModeAssist::ROAM):
+        case static_cast<int8_t>(ModeAssist::ROAM):
             return "ROA";
             break;
         default:
@@ -247,15 +253,15 @@ String labelModeAssist(int16_t mode_assist) {
     }
 }
 
-String labelModeEmergency(int16_t mode_emergency) {
+String labelModeEmergency(int8_t mode_emergency) {
     switch (mode_emergency) {
-        case static_cast<int16_t>(ModeEmergency::OK):
+        case static_cast<int8_t>(ModeEmergency::OK):
             return " OK ";
             break;
-        case static_cast<int16_t>(ModeEmergency::FULL_STOP):
+        case static_cast<int8_t>(ModeEmergency::FULL_STOP):
             return "STOP";
             break;
-        case static_cast<int16_t>(ModeEmergency::PID_RESET):
+        case static_cast<int8_t>(ModeEmergency::PID_RESET):
             return "REST";
             break;
         default:
@@ -264,18 +270,18 @@ String labelModeEmergency(int16_t mode_emergency) {
     }
 }
 
-String labelModeLights(int16_t mode_lights) {
+String labelModeLights(int8_t mode_lights) {
     switch (mode_lights) {
-        case static_cast<int16_t>(ModeLights::OFF):
+        case static_cast<int8_t>(ModeLights::OFF):
             return "OFF";
             break;
-        case static_cast<int16_t>(ModeLights::AMBIENT):
+        case static_cast<int8_t>(ModeLights::AMBIENT):
             return "AMB";
             break;
-        case static_cast<int16_t>(ModeLights::ADVANCED):
+        case static_cast<int8_t>(ModeLights::ADVANCED):
             return "ADV";
             break;
-        case static_cast<int16_t>(ModeLights::FULL_ON):
+        case static_cast<int8_t>(ModeLights::FULL_ON):
             return "FLL";
             break;
         default:
@@ -284,26 +290,26 @@ String labelModeLights(int16_t mode_lights) {
     }
 }
 
-int16_t adjustModeControl(int16_t mode) {
-    int16_t new_mode = mode + 1;
+int8_t adjustModeControl(int8_t mode) {
+    int8_t new_mode = mode + 1;
     if (new_mode > 2) { new_mode = 0; }
     return new_mode;
 }
 
-int16_t adjustModeAssist(int16_t mode) {
-    int16_t new_mode = mode + 1;
+int8_t adjustModeAssist(int8_t mode) {
+    int8_t new_mode = mode + 1;
     if (new_mode > 3) { new_mode = 0; }
     return new_mode;
 }
 
-int16_t adjustModeEmergency(int16_t mode) {
-    int16_t new_mode = mode + 1;
+int8_t adjustModeEmergency(int8_t mode) {
+    int8_t new_mode = mode + 1;
     if (new_mode > 2) { new_mode = 0; }
     return new_mode;
 }
 
-int16_t adjustModeLights(int16_t mode) {
-    int16_t new_mode = mode + 1;
+int8_t adjustModeLights(int8_t mode) {
+    int8_t new_mode = mode + 1;
     if (new_mode > 3) { new_mode = 0; }
     return new_mode;
 }
@@ -317,7 +323,7 @@ int16_t adjustModeLights(int16_t mode) {
 #define DISTANCE_LEVEL_3 40
 #define DISTANCE_LEVEL_4 45
 #define DISTANCE_LEVEL_5 50
-void drawTopDistanceIndicator(int16_t distance, int x, int y, int direction /* 0 = Left, 1 = Right */, int width = 20, int max_height = 60) {
+void drawTopDistanceIndicator(int8_t distance, int x, int y, int direction /* 0 = Left, 1 = Right */, int width = 20, int max_height = 60) {
     int gap_interval = 5;   // in px
     int box_size = 5;       // in px, including gaps
     int height = map(distance, 0, 100, 0, max_height);
@@ -368,7 +374,7 @@ void drawTopDistanceIndicator(int16_t distance, int x, int y, int direction /* 0
     //EsploraTFT.fillRect(x, height, width, (max_height - height), ST7735_BLACK);
 }
 
-void drawBottomDistanceIndicator(int16_t distance, int x, int y, int direction /* 0 = Left, 1 = Right */, int width = 20, int max_height = 60) {
+void drawBottomDistanceIndicator(int8_t distance, int x, int y, int direction /* 0 = Left, 1 = Right */, int width = 20, int max_height = 60) {
     int gap_interval = 5;   // in px
     int box_size = 5;       // in px, including gaps
     int height = map(distance, 0, 100, 0, max_height);
@@ -424,7 +430,7 @@ void drawBottomDistanceIndicator(int16_t distance, int x, int y, int direction /
 #define SPEED_LEVEL_3 40
 #define SPEED_LEVEL_4 45
 #define SPEED_LEVEL_5 50
-void drawMotorIndicator(int16_t motor_power, int x, int y, int width = 20, int max_height = 50) {
+void drawMotorIndicator(int8_t motor_power, int x, int y, int width = 20, int max_height = 50) {
     int height = map(motor_power, 0, 100, 0, max_height);
 
     uint16_t color = ST7735_WHITE;
@@ -446,7 +452,7 @@ void drawMotorIndicator(int16_t motor_power, int x, int y, int width = 20, int m
     EsploraTFT.fillRect(x, y + (max_height - height), width, height, color);
 }
 
-void drawMotorMaxSpeedIndicator(int16_t max_speed, int x, int y, int width = 1, int max_height = 50) {
+void drawMotorMaxSpeedIndicator(int8_t max_speed, int x, int y, int width = 1, int max_height = 50) {
     int height = map(max_speed, 0, 100, 0, max_height);
 
     EsploraTFT.fillRect(x, y, width, (max_height - height), ST7735_BLACK);
@@ -468,10 +474,10 @@ void setup() {
     //while (!Serial) { ; }
     //Serial.println("Rowee Esplora Remote is ready");
 
-    mode_control = static_cast<int16_t>(ModeControl::OPEN_LOOP);
-    mode_assist = static_cast<int16_t>(ModeAssist::OFF);
-    mode_emergency = static_cast<int16_t>(ModeEmergency::OK);
-    mode_lights = static_cast<int16_t>(ModeLights::OFF);
+    mode_control = static_cast<int8_t>(ModeControl::OPEN_LOOP);
+    mode_assist = static_cast<int8_t>(ModeAssist::OFF);
+    mode_emergency = static_cast<int8_t>(ModeEmergency::OK);
+    mode_lights = static_cast<int8_t>(ModeLights::OFF);
 
     bluetooth.begin(9600);
     while (!bluetooth) { ; }
@@ -536,20 +542,17 @@ void loop() {
     }
 
     // Load data from input controls
-    int xAxis = Esplora.readAccelerometer(X_AXIS);
-    int yAxis = Esplora.readAccelerometer(Y_AXIS);
-    int zAxis = Esplora.readAccelerometer(Z_AXIS);
-    int light = Esplora.readLightSensor();
-    int temperature = Esplora.readTemperature(DEGREES_C);
-    int microphone = Esplora.readMicrophone();
+    //int xAxis = Esplora.readAccelerometer(X_AXIS);
+    //int yAxis = Esplora.readAccelerometer(Y_AXIS);
+    //int zAxis = Esplora.readAccelerometer(Z_AXIS);
+    light = Esplora.readLightSensor();
+    temperature = Esplora.readTemperature(DEGREES_C);
+    //int microphone = Esplora.readMicrophone();
     int joyBtn = Esplora.readJoystickSwitch();
-    speed = Esplora.readSlider();
-    x = Esplora.readJoystickX();
-    y = Esplora.readJoystickY();
-    int red = 0;
-    int green = 0;
-    int blue = 0;
-    int tone = 0;
+    rawSpeed = Esplora.readSlider();
+    rawX = Esplora.readJoystickX() - 20;
+    rawY = Esplora.readJoystickY() - 5;
+    //int tone = 0;
 
     if (currentMillis - readInputMillis >= INTERVAL_READ_INPUT) {
         readInputMillis = currentMillis;
@@ -569,6 +572,10 @@ void loop() {
     luminosity = map(light, 0, 1023, 0, 100);
     brightness = 100 - luminosity;
     acceleration = 100; // TODO load from settings
+    limitedSpeed = 950 - min(rawSpeed, 950);
+    speed = map(limitedSpeed, 1, 950, 30, 100);
+    x = map(rawX, -532, 491, -100, 100);
+    y = map(rawY, -517, 506, -100, 100);
 
     // Fake distance generator
     // if (distance_dir == false) {
@@ -682,9 +689,9 @@ void loop() {
         String textModeControl = labelModeControl(mode_control);
         textModeControl.toCharArray(printModeControl, 3);
         // Print new value
-        if (mode_control == static_cast<int16_t>(ModeControl::OPEN_LOOP)) {
+        if (mode_control == static_cast<int8_t>(ModeControl::OPEN_LOOP)) {
             EsploraTFT.stroke(255, 227, 43);
-        } else if (mode_control == static_cast<int16_t>(ModeControl::CLOSED_LOOP)) {
+        } else if (mode_control == static_cast<int8_t>(ModeControl::CLOSED_LOOP)) {
             EsploraTFT.stroke(0, 255, 0);
         } else { // TURRET
             EsploraTFT.stroke(41, 234, 255);
@@ -699,11 +706,11 @@ void loop() {
         String textModeLights = labelModeLights(mode_lights);
         textModeLights.toCharArray(printModeLights, 4);
         // Print new value
-        if (mode_lights == static_cast<int16_t>(ModeLights::OFF)) {
+        if (mode_lights == static_cast<int8_t>(ModeLights::OFF)) {
             EsploraTFT.stroke(180, 180, 180);
-        } else if (mode_lights == static_cast<int16_t>(ModeLights::AMBIENT)) {
+        } else if (mode_lights == static_cast<int8_t>(ModeLights::AMBIENT)) {
             EsploraTFT.stroke(41, 234, 255);
-        } else if (mode_lights == static_cast<int16_t>(ModeLights::ADVANCED)) {
+        } else if (mode_lights == static_cast<int8_t>(ModeLights::ADVANCED)) {
             EsploraTFT.stroke(0, 255, 0);
         } else { // FULL_ON
             EsploraTFT.stroke(255, 227, 43);
@@ -718,11 +725,11 @@ void loop() {
         String textModeAssist = labelModeAssist(mode_assist);
         textModeAssist.toCharArray(printModeAssist, 4);
         // Print new value
-        if (mode_assist == static_cast<int16_t>(ModeAssist::OFF)) {
+        if (mode_assist == static_cast<int8_t>(ModeAssist::OFF)) {
             EsploraTFT.stroke(180, 180, 180);
-        } else if (mode_assist == static_cast<int16_t>(ModeAssist::ADJUST)) {
+        } else if (mode_assist == static_cast<int8_t>(ModeAssist::ADJUST)) {
             EsploraTFT.stroke(0, 255, 0);
-        } else if (mode_assist == static_cast<int16_t>(ModeAssist::WANDER)) {
+        } else if (mode_assist == static_cast<int8_t>(ModeAssist::WANDER)) {
             EsploraTFT.stroke(41, 234, 255);
         } else { // ROAM
             EsploraTFT.stroke(255, 227, 43);
@@ -737,7 +744,7 @@ void loop() {
         String textModeEmergency = labelModeEmergency(mode_emergency);
         textModeEmergency.toCharArray(printModeEmergency, 5);
         // Print new value
-        if (mode_emergency == static_cast<int16_t>(ModeEmergency::OK)) {
+        if (mode_emergency == static_cast<int8_t>(ModeEmergency::OK)) {
             EsploraTFT.stroke(0, 255, 0);
         } else {
             EsploraTFT.stroke(255, 0, 0);
@@ -751,13 +758,10 @@ void loop() {
         drawBottomDistanceIndicator(map(distance_br, 9, 81, 0, 100), 160 - 25, 128 - 60, INDICATOR_RIGHT);
 
         // # Motors max speed
-        int limitedSpeed = 950 - min(speed, 950);
-        int normSpeed = map(limitedSpeed, 1, 950, 1, 127);
-        int percentSpeed = map(normSpeed, 1, 127, 30, 100);
-        drawMotorMaxSpeedIndicator(percentSpeed, PADDING_LEFT + 20, 128 - 50);
-        drawMotorMaxSpeedIndicator(percentSpeed, PADDING_LEFT + 20 + 59, 128 - 50);
+        drawMotorMaxSpeedIndicator(speed, PADDING_LEFT + 20, 128 - 50);
+        drawMotorMaxSpeedIndicator(speed, PADDING_LEFT + 20 + 59, 128 - 50);
 
-        // # Motors motor_right
+        // # Motors
         drawMotorIndicator(motor_left, PADDING_LEFT + 0, 128 - 50);
         drawMotorIndicator(motor_right, PADDING_LEFT + 80, 128 - 50);
     }
