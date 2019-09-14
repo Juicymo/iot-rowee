@@ -389,6 +389,18 @@ void loop() {
         lcd.setCursor(2, 3);
         lcd.print(motor_speed_left);
         lcd.print("%");
+
+        lcd.setCursor(8, 2);
+        lcd.print(distance_bl);
+        lcd.print("cm ");
+        lcd.print(distance_fl);
+        lcd.print("cm");
+
+        lcd.setCursor(8, 3);
+        lcd.print(distance_br);
+        lcd.print("cm ");
+        lcd.print(distance_fr);
+        lcd.print("cm");
     }
 
     // Motors
