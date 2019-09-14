@@ -266,6 +266,7 @@ void setup() {
 
     setupMotorBoard();
 
+    // setupModes();
     mode_control = static_cast<int16_t>(ModeControl::OPEN_LOOP);
     mode_assist = static_cast<int16_t>(ModeAssist::OFF);
     mode_emergency = static_cast<int16_t>(ModeEmergency::OK);
@@ -386,6 +387,7 @@ void loop() {
         lcd.print("%");
     }
 
+    // Motors
     // M1 = Right
     // M2 = Left
 
