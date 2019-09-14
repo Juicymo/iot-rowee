@@ -29,14 +29,29 @@
 
 // Constants
 #define TIMEOUT_ROBOCLAW 10000 // in ms
+
 #define SERVO_PAN_CENTER 102
+#define SERVO_PAN_INCREMENT 3
+#define SERVO_PAN_TRIM 30
+#define SERVO_PAN_MIN SERVO_PAN_CENTER-SERVO_PAN_TRIM
+#define SERVO_PAN_MAX SERVO_PAN_CENTER+SERVO_PAN_TRIM
+
 #define SERVO_TILT_CENTER 84
+#define SERVO_TILT_INCREMENT 3
+#define SERVO_TILT_TRIM 30
+#define SERVO_TILT_MIN SERVO_TILT_CENTER-SERVO_TILT_TRIM
+#define SERVO_TILT_MAX SERVO_TILT_CENTER+SERVO_TILT_TRIM
+
 #define MOTOR_DIRECTION_FORWARD 0
 #define MOTOR_DIRECTION_BACKWARD 1
+
+#define LIGHTS_LED_COUNT 28 // 4 * 7 = 28
 
 // Intevals
 #define INTERVAL_LCD 500 // in ms
 #define INTERVAL_SEND 100 // in ms
+#define INTERVAL_LIGHT 500 // in ms
+#define INTERVAL_BLINK 500 // in ms
 
 // Pins - LCD
 #define PIN_LCD_RS 12
@@ -51,6 +66,7 @@
 #define PIN_SENSOR_IR_FL 14
 #define PIN_SENSOR_IR_BR 15
 #define PIN_SENSOR_IR_BL 16
+#define PIN_LIGHTS 2
 
 // Objects
 Plotter p;
@@ -64,6 +80,7 @@ SharpIR sensorFR(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_FR);
 SharpIR sensorFL(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_FL);
 SharpIR sensorBR(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_BR);
 SharpIR sensorBL(SharpIR::GP2Y0A21YK0F, PIN_SENSOR_IR_BL);
+Adafruit_NeoPixel lights = Adafruit_NeoPixel(LIGHTS_LED_COUNT, PIN_LIGHTS);
 
 // Enums
 enum class AiAction {
@@ -140,6 +157,9 @@ SEND_DATA_STRUCTURE dataRobotToRemote;
 
 unsigned long lcdMillis = 0;
 unsigned long sendMillis = 0;
+unsigned long lightMillis = 0;
+unsigned long blinkLeftMillis = 0;
+unsigned long blinkRightMillis = 0;
 
 int8_t speed;
 double speedInPercent;
@@ -147,6 +167,11 @@ int8_t x;
 int8_t y;
 int absMotorL;
 int absMotorR;
+bool lightsBlinkingLeft;
+bool lightsBlinkingRight;
+bool lightsBlinkLeftState;      // DO NOT adjust manually!
+bool lightsBlinkRightState;     // DO NOT adjust manually!
+bool lightsManualState;     // DO NOT adjust manually!
 
 int16_t currentR;
 int16_t currentL;
@@ -168,8 +193,13 @@ uint8_t motor_direction_right;
 uint8_t motor_direction_left;
 int32_t motor_speed_right_qpps;
 int32_t motor_speed_left_qpps;
+int8_t motor_directional_speed_right;
+int8_t motor_directional_speed_left;
 int8_t motor_speed_right;
 int8_t motor_speed_left;
+
+int servoTiltRotation;
+int servoPanRotation;
 
 int     mixX;              // Joystick X input                     (0..+127)
 int     mixY;              // Joystick Y input                     (0..+127)
@@ -216,6 +246,214 @@ void setupMotorBoard() {
     roboclaw.SetM2VelocityPID(address, LKp, LKi, LKd, qppsL);
 }
 
+void servoPanMoveLeft() {
+
+}
+
+void servoPanMoveRight() {
+
+}
+
+void servoTiltMoveUp() {
+
+}
+
+void servoTiltMoveDown() {
+
+}
+
+uint32_t lightsColorWheel(byte WheelPos) {
+    if (WheelPos < 85) {
+        return lights.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+    } else if(WheelPos < 170) {
+        WheelPos -= 85;
+        return lights.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+    } else {
+        WheelPos -= 170;
+        return lights.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    }
+}
+
+void lightsFrontOn() {
+    uint16_t i;
+
+    for(i = 0; i < 14; i++) {
+      lights.setPixelColor(i, lights.Color(255, 255, 255));
+    }
+
+    lights.show();
+}
+
+void lightsFrontOff() {
+    uint16_t i;
+
+    for(i = 0; i < 14; i++) {
+      lights.setPixelColor(i, lights.Color(0, 0, 0));
+    }
+
+    lights.show();
+}
+
+void lightsBackOn() {
+    uint16_t i;
+
+    for(i = 14; i < 28; i++) {
+      lights.setPixelColor(i, lights.Color(255, 0, 0));
+    }
+
+    lights.show();
+}
+
+void lightsBackOff() {
+    uint16_t i;
+
+    for(i = 14; i < 28; i++) {
+      lights.setPixelColor(i, lights.Color(0, 0, 0));
+    }
+
+    lights.show();
+}
+
+void lightsBackwardsOn() {
+    lights.setPixelColor(21, lights.Color(255, 255, 255));
+    lights.setPixelColor(14, lights.Color(255, 255, 255));
+
+    lights.show();
+}
+
+void lightsBackwardsOff() {
+    lights.setPixelColor(21, lights.Color(255, 0, 0));
+    lights.setPixelColor(14, lights.Color(255, 0, 0));
+
+    lights.show();
+}
+
+void lightsBlinkRightOn() {
+    // Front
+    lights.setPixelColor(1, lights.Color(255, 165, 0));
+    lights.setPixelColor(2, lights.Color(255, 165, 0));
+    lights.setPixelColor(6, lights.Color(255, 165, 0));
+
+    // Back
+    lights.setPixelColor(23, lights.Color(255, 165, 0));
+    lights.setPixelColor(24, lights.Color(255, 165, 0));
+
+    lights.show();
+}
+
+void lightsBlinkRightOff() {
+    // Front
+    lights.setPixelColor(1, lights.Color(255, 255, 255));
+    lights.setPixelColor(2, lights.Color(255, 255, 255));
+    lights.setPixelColor(6, lights.Color(255, 255, 255));
+
+    // Back
+    lights.setPixelColor(23, lights.Color(255, 0, 0));
+    lights.setPixelColor(24, lights.Color(255, 0, 0));
+
+    lights.show();
+}
+
+void lightsBlinkLeftOn() {
+    // Front
+    lights.setPixelColor(10, lights.Color(255, 165, 0));
+    lights.setPixelColor(11, lights.Color(255, 165, 0));
+    lights.setPixelColor(12, lights.Color(255, 165, 0));
+
+    // Back
+    lights.setPixelColor(19, lights.Color(255, 165, 0));
+    lights.setPixelColor(20, lights.Color(255, 165, 0));
+
+    lights.show();
+}
+
+void lightsBlinkLeftOff() {
+    // Front
+    lights.setPixelColor(10, lights.Color(255, 255, 255));
+    lights.setPixelColor(11, lights.Color(255, 255, 255));
+    lights.setPixelColor(12, lights.Color(255, 255, 255));
+
+    // Back
+    lights.setPixelColor(19, lights.Color(255, 0, 0));
+    lights.setPixelColor(20, lights.Color(255, 0, 0));
+
+    lights.show();
+}
+
+void lightsAllOff() {
+    uint16_t i;
+
+    for(i = 0; i < lights.numPixels(); i++) {
+        lights.setPixelColor(i, lights.Color(0, 0, 0));
+    }
+
+    lights.show();
+}
+
+void lightsAllFullOn() {
+    uint16_t i;
+
+    for(i = 0; i < lights.numPixels(); i++) {
+        lights.setPixelColor(i, lights.Color(255, 255, 255));
+    }
+
+    lights.show();
+}
+
+void lightsAllColor(uint32_t color) {
+    uint16_t i;
+
+    for(i = 0; i < lights.numPixels(); i++) {
+        lights.setPixelColor(i, color);
+    }
+
+    lights.show();
+}
+
+void lightsUpdateBlink() {
+    unsigned long currentMillis = millis();
+
+    // Left
+    if (lightsBlinkingLeft) { // If blinking, update blink if needed
+        if (currentMillis - blinkLeftMillis >= INTERVAL_BLINK) {
+            blinkLeftMillis = currentMillis;
+
+            if (lightsBlinkLeftState) {
+                lightsBlinkLeftOff();
+                lightsBlinkLeftState = false;
+            } else {
+                lightsBlinkLeftOn();
+                lightsBlinkLeftState = true;
+            }
+        }
+    } else { // If not blinking anymore, turn blink off
+        if (lightsBlinkLeftState) {
+            lightsBlinkLeftOff();
+            lightsBlinkLeftState = false;
+        }
+    }
+
+    // Right
+    if (lightsBlinkingRight) { // If blinking, update blink if needed
+        if (currentMillis - blinkRightMillis >= INTERVAL_BLINK) {
+            blinkRightMillis = currentMillis;
+
+            if (lightsBlinkRightState) {
+                lightsBlinkRightOff();
+                lightsBlinkRightState = false;
+            } else {
+                lightsBlinkRightOn();
+                lightsBlinkRightState = true;
+            }
+        }
+    } else { // If not blinking anymore, turn blink off
+        if (lightsBlinkRightState) {
+            lightsBlinkRightOff();
+            lightsBlinkRightState = false;
+        }
+    }
+}
+
 // Program
 void setup() {
     lcd.begin(20, 4);
@@ -250,8 +488,21 @@ void setup() {
 
     servoPan.attach(PIN_SERVO_PAN);
     servoTilt.attach(PIN_SERVO_TILT);
-    servoPan.write(SERVO_PAN_CENTER);
-    servoTilt.write(SERVO_TILT_CENTER);
+    servoPanRotation = SERVO_PAN_CENTER;
+    servoTiltRotation = SERVO_TILT_CENTER;
+    servoPan.write(servoPanRotation);
+    servoTilt.write(servoTiltRotation);
+
+    lights.begin();
+    lights.setBrightness(50);
+    lightsBlinkingLeft = false;
+    lightsBlinkingRight = false;
+    lightsBlinkLeftState = false;
+    lightsBlinkRightState = false;
+    lightsManualState = false;
+
+    lightsFrontOn();
+    lightsBackOn();
 
     Serial2.begin(9600); // To HC-05 (Bluetooth)
     while (!Serial2) { ; }
@@ -279,6 +530,8 @@ void setup() {
     mode_assist = static_cast<int8_t>(ModeAssist::OFF);
     mode_emergency = static_cast<int8_t>(ModeEmergency::OK);
     mode_lights = static_cast<int8_t>(ModeLights::OFF);
+
+    brightness = 50;
 }
 
 void loop() {
@@ -301,9 +554,11 @@ void loop() {
     speedInPercent = speed / 100.0;
 
     motor_speed_right_qpps = roboclaw.ReadSpeedM1(address, &motor_direction_right);
-    motor_speed_right = abs(round((motor_speed_right_qpps / (MAX_SPEED_R * 1.0)) * 100));
+    motor_directional_speed_right = round((motor_speed_right_qpps / (MAX_SPEED_R * 1.0)) * 100);
+    motor_speed_right = abs(motor_directional_speed_right);
     motor_speed_left_qpps = roboclaw.ReadSpeedM2(address, &motor_direction_left);
-    motor_speed_left = abs(round((motor_speed_left_qpps / (MAX_SPEED_L * 1.0)) * 100));
+    motor_directional_speed_left = round((motor_speed_left_qpps / (MAX_SPEED_L * 1.0)) * 100);
+    motor_speed_left = abs(motor_directional_speed_left);
 
     // Load Distance
     distance_fr = sensorFR.getDistance();
@@ -311,6 +566,41 @@ void loop() {
     distance_br = sensorBR.getDistance();
     distance_bl = sensorBL.getDistance();
 
+    // Update Lights
+    // TODO solve brightness updates
+    if (currentMillis - lightMillis >= INTERVAL_LIGHT) {
+        lightMillis = currentMillis;
+
+        if (mode_lights == static_cast<int8_t>(ModeLights::OFF)) {
+            lightsManualState = true;
+            lights.setBrightness(brightness);
+            lightsAllOff();
+        } else if (mode_lights == static_cast<int8_t>(ModeLights::AMBIENT)) {
+            if (lightsManualState == true) {
+                lights.setBrightness(brightness);
+                lightsFrontOn();
+                lightsBackOn();
+
+                lightsManualState = false;
+            }
+        } else if (mode_lights == static_cast<int8_t>(ModeLights::ADVANCED)) {
+            if (lightsManualState == true) {
+                lights.setBrightness(brightness);
+                lightsFrontOn();
+                lightsBackOn();
+
+                lightsManualState = false;
+            }
+
+            lightsUpdateBlink();
+        } else { // FULL_ON
+            lightsManualState = true;
+            lights.setBrightness(100);
+            lightsAllFullOn();
+        }
+    }
+
+    // Update LCD
     if (currentMillis - lcdMillis >= INTERVAL_LCD) {
         lcdMillis = currentMillis;
 
@@ -390,13 +680,13 @@ void loop() {
         lcd.print(motor_speed_left);
         lcd.print("%");
 
-        lcd.setCursor(8, 2);
+        lcd.setCursor(7, 2);
         lcd.print(distance_bl);
         lcd.print("cm ");
         lcd.print(distance_fl);
         lcd.print("cm");
 
-        lcd.setCursor(8, 3);
+        lcd.setCursor(7, 3);
         lcd.print(distance_br);
         lcd.print("cm ");
         lcd.print(distance_fr);
@@ -490,7 +780,68 @@ void loop() {
             // TODO for now, robot will stop when in turret mode, in future AI can control its movement
             roboclaw.DutyM1M2(address, 0, 0); // Full Stop
 
-            // TODO control servos
+            // servoPan.write(servoPanRotation);
+            // servoTilt.write(servoTiltRotation);
+        }
+
+        if (mode_lights == static_cast<int8_t>(ModeLights::AMBIENT)) {
+            // Update backward direction lights
+            if (motor_directional_speed_left < 0 && motor_directional_speed_right < 0) { // Robot is driving backwards
+                lightsBackwardsOn();
+            } else {
+                lightsBackwardsOff();
+            }
+
+            // Ensure blinking is OFF
+            lightsBlinkingLeft = false;
+            lightsBlinkingRight = false;
+        } else if (mode_lights == static_cast<int8_t>(ModeLights::ADVANCED)) {
+            bool robotMovesForward = true;
+            // Update backward direction lights (as in ambient mode)
+            if (motor_directional_speed_left < 0 && motor_directional_speed_right < 0) { // Robot is driving backwards
+                robotMovesForward = false;
+            } else {
+                robotMovesForward = true;
+            }
+
+            if (robotMovesForward == false) { // Robot is driving backwards
+                lightsBackwardsOn();
+            } else {
+                lightsBackwardsOff();
+            }
+
+            // Update blinking (based on direction)
+            if (robotMovesForward) {
+                if (motor_directional_speed_left < motor_directional_speed_right) { // Robot is driving left
+                    lightsBlinkingLeft = true;
+                    lightsBlinkingRight = false;
+                } else if (motor_directional_speed_left > motor_directional_speed_right) { // Robot is driving right
+                    lightsBlinkingLeft = false;
+                    lightsBlinkingRight = true;
+                } else { // Robot is driving straight, turn blinking off
+                    lightsBlinkingLeft = false;
+                    lightsBlinkingRight = false;
+                }
+            } else { // when moving backwards, directions are opposite
+                if (motor_directional_speed_left > motor_directional_speed_right) { // Robot is driving left
+                    lightsBlinkingLeft = true;
+                    lightsBlinkingRight = false;
+                } else if (motor_directional_speed_left < motor_directional_speed_right) { // Robot is driving right
+                    lightsBlinkingLeft = false;
+                    lightsBlinkingRight = true;
+                } else { // Robot is driving straight, turn blinking off
+                    lightsBlinkingLeft = false;
+                    lightsBlinkingRight = false;
+                }
+            }
+        } else if (mode_lights == static_cast<int8_t>(ModeLights::OFF)) {
+            // Ensure blinking is OFF
+            lightsBlinkingLeft = false;
+            lightsBlinkingRight = false;
+        } else { // FULL_ON
+            // Ensure blinking is OFF
+            lightsBlinkingLeft = false;
+            lightsBlinkingRight = false;
         }
     } else if (mode_emergency == static_cast<int8_t>(ModeEmergency::PID_RESET)) {
         roboclaw.DutyM1M2(address, 0, 0); // Full Stop
@@ -501,6 +852,12 @@ void loop() {
         roboclaw.DutyM1M2(address, 0, 0); // Full Stop
         lcd.setCursor(0, 0);
         lcd.print("EMERGENCY STOP");
+
+        // Start Blinking if allowed to (only in advanced mode)
+        if (mode_lights == static_cast<int8_t>(ModeLights::ADVANCED)) {
+            lightsBlinkingLeft = true;
+            lightsBlinkingRight = true;
+        }
     }
 
     // Inza's Simple Duty Control (for testing purposes)
