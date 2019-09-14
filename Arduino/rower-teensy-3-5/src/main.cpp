@@ -46,6 +46,7 @@
 #define MOTOR_DIRECTION_BACKWARD 1
 
 #define LIGHTS_LED_COUNT 28 // 4 * 7 = 28
+#define LIGHTS_BLINK_DEVIATION 10
 
 // Intevals
 #define INTERVAL_LCD 500 // in ms
@@ -483,8 +484,6 @@ void setup() {
     lcd.print("Rowee is OK");
 
     roboclaw.begin(38400);
-    //Serial1.begin(38400); // To RoboClaw
-    //while (!Serial1) { ; }
 
     servoPan.attach(PIN_SERVO_PAN);
     servoTilt.attach(PIN_SERVO_TILT);
@@ -812,12 +811,14 @@ void loop() {
                 lightsBackwardsOff();
             }
 
+            int speed_difference = abs(motor_directional_speed_left - motor_directional_speed_right);
+
             // Update blinking (based on direction)
             if (robotMovesForward) {
-                if (motor_directional_speed_left < motor_directional_speed_right) { // Robot is driving left
+                if ((motor_directional_speed_left < motor_directional_speed_right) && speed_difference > LIGHTS_BLINK_DEVIATION) { // Robot is driving left
                     lightsBlinkingLeft = true;
                     lightsBlinkingRight = false;
-                } else if (motor_directional_speed_left > motor_directional_speed_right) { // Robot is driving right
+                } else if ((motor_directional_speed_left > motor_directional_speed_right) && speed_difference > LIGHTS_BLINK_DEVIATION) { // Robot is driving right
                     lightsBlinkingLeft = false;
                     lightsBlinkingRight = true;
                 } else { // Robot is driving straight, turn blinking off
@@ -825,10 +826,10 @@ void loop() {
                     lightsBlinkingRight = false;
                 }
             } else { // when moving backwards, directions are opposite
-                if (motor_directional_speed_left > motor_directional_speed_right) { // Robot is driving left
+                if ((motor_directional_speed_left > motor_directional_speed_right) && speed_difference > LIGHTS_BLINK_DEVIATION) { // Robot is driving left
                     lightsBlinkingLeft = true;
                     lightsBlinkingRight = false;
-                } else if (motor_directional_speed_left < motor_directional_speed_right) { // Robot is driving right
+                } else if ((motor_directional_speed_left < motor_directional_speed_right) && speed_difference > LIGHTS_BLINK_DEVIATION) { // Robot is driving right
                     lightsBlinkingLeft = false;
                     lightsBlinkingRight = true;
                 } else { // Robot is driving straight, turn blinking off
