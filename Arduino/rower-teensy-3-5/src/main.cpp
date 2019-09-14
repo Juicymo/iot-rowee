@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // Inbuilt Libraries
-//#include <Servo.h>
+//#include <Servo.h> // we cannot use the Arduino's inbuild Servo library on Teensy
 #include <Wire.h>
 
 // External Libraries
